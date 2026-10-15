@@ -1,0 +1,11 @@
+@host = http://localhost:5096
+
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "customerName": "John Doe",
+  "totalAmount": 199.99
+}
+
+###
