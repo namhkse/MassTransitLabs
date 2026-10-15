@@ -190,6 +190,23 @@ namespace Ordering.Api.Migrations
                     b.ToTable("OutboxState");
                 });
 
+            modelBuilder.Entity("Ordering.Api.Consumers.OrderSaga", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("CorrelationId");
+
+                    b.ToTable("OrderSaga");
+                });
+
             modelBuilder.Entity("Ordering.Api.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")

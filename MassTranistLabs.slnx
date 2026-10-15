@@ -1,3 +1,8 @@
 <Solution>
+  <Project Path="MassTranistLabs.AppHost/MassTranistLabs.AppHost.csproj" />
+  <Project Path="MassTranistLabs.ServiceDefaults/MassTranistLabs.ServiceDefaults.csproj" />
+  <Project Path="src/Inventory.Api/Inventory.Api.csproj" />
   <Project Path="src/Ordering.Api/Ordering.Api.csproj" />
+  <Project Path="src/Payment.Api/Payment.Api.csproj" />
+  <Project Path="src/Shop.Contracts/Shop.Contracts.csproj" />
 </Solution>

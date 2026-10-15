@@ -8,4 +8,13 @@ Content-Type: application/json
   "totalAmount": 199.99
 }
 
-###
+### Create an order
+POST {{host}}/orders
+Content-Type: application/json
+
+> {%
+    client.global.set("orderId", response.body.orderId);
+%}
+
+### Accept the created order
+POST {{host}}/orders/{{orderId}}/accept

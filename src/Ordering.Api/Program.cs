@@ -2,11 +2,14 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Api.Consumers;
 using Ordering.Api.Database;
+using Shop.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 var connectionString =
-    builder.Configuration.GetConnectionString("Postgres");
+    builder.Configuration.GetConnectionString("ordering");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -14,34 +17,66 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.SetEndpointNameFormatter(new KebabCaseEndpointNameFormatter("ordering", false));
-
+    
+    // Register consumers.
     x.AddConsumers(typeof(Program).Assembly);
     
-    x.AddEntityFrameworkOutbox<AppDbContext>(o =>
+    // Register sagas.
+    x.AddSaga<OrderSaga>()
+        .EntityFrameworkRepository(r =>
     {
-        o.QueryDelay = TimeSpan.FromSeconds(10);
-        o.UsePostgres();
-        o.UseBusOutbox();
+        r.ExistingDbContext<AppDbContext>();
+        r.UsePostgres();
     });
+    // x.AddEntityFrameworkOutbox<AppDbContext>(o =>
+    // {
+    //     o.QueryDelay = TimeSpan.FromSeconds(10);
+    //     o.UsePostgres();
+    //     o.UseBusOutbox();
+    // });
 
-    x.AddConfigureEndpointsCallback((context, name, cfg) => { cfg.UseEntityFrameworkOutbox<AppDbContext>(context); });
+    // x.AddConfigureEndpointsCallback((context, name, cfg) => { cfg.UseEntityFrameworkOutbox<AppDbContext>(context); });
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host(new Uri(builder.Configuration.GetConnectionString("RabbitMQ")!));
+        cfg.Host(new Uri(builder.Configuration.GetConnectionString("rabbitmq")!));
         cfg.ConfigureEndpoints(context);
     });
 });
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
+
 app.MapGet("/", () => "API is running");
 
-app.MapPost("/api/orders", async (IPublishEndpoint endpoint, CreateOrder command, AppDbContext db) =>
+app.MapPost("/orders", async (IPublishEndpoint publishEndpoint) =>
 {
-    await endpoint.Publish(command);
-    await db.SaveChangesAsync();
-    return Results.Accepted();
+    var orderId = Guid.NewGuid();
+
+    await publishEndpoint.Publish(new SubmitOrder
+    {
+        CorrelationId = orderId,
+    });
+
+    return Results.Accepted(
+        $"/orders/{orderId}",
+        new { OrderId = orderId });
 });
+//
+// app.MapPost("/orders/{id:guid}/accept", async (Guid id, IPublishEndpoint publishEndpoint) =>
+//     {
+//         await publishEndpoint.Publish(new AcceptOrder
+//         {
+//             CorrelationId = id,
+//             Timestamp = DateTime.UtcNow
+//         });
+//
+//         return Results.Accepted(value: new
+//         {
+//             OrderId = id,
+//             Status = "Acceptance message published"
+//         });
+//     });
 
 app.Run();
